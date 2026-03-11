@@ -77,6 +77,25 @@ void getClassName(char *className) {
     className[0] = toupper((unsigned char)className[0]);
 }
 
+void getParentClassName(char *className) {
+    printf("What is the name of the parent class?\n");
+    scanf("%s", className);
+    className[0] = toupper((unsigned char)className[0]);
+}
+
+int isClassInherited() {
+    char boolean;
+    printf("Is this class inherited (y/n)?\n");
+    scanf(" %c", &boolean);
+    switch (boolean) {
+    case 'y':
+        return 1;
+    case 'n':
+    default:
+        return 0;
+    }
+}
+
 FILE *createFile(char *className) {
     getClassName(className);
     char fullPath[2048] = "./";
@@ -106,7 +125,7 @@ void CLI(FILE *f, char *className) {
         attTypeArr[i] = getAttType(attNameArr[i]);
     }
 
-    writeToFile(f, className, attVis, attNumber, attNameArr, attTypeArr);
+    writeToFile(f, className, attVis, attNumber, attNameArr, attTypeArr, isInherited, parentClassName);
 
     for (int i = 0; i < attNumber; i++) {
         free(attNameArr[i]);

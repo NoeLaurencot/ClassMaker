@@ -4,6 +4,9 @@
 #define CLASS \
 "public class %s {\n"
 
+#define CLASS_WI \
+"public class %s extends %s {\n"
+
 #define ATTRIBUTE_WVIS \
 "    %s %s %s;\n"
 
@@ -19,6 +22,12 @@
 #define CONSTR_PARAMETER \
 "%s %s"
 
+#define CONSTR_SUPER_OPEN \
+"       super("
+
+#define CONSTR_SUPER_PARAMETER \
+"%s"
+
 #define CONSTR_CONTENT \
 "        this.%s = %s;\n"
 
@@ -33,6 +42,9 @@
 
 #define TO_STRING \
 "        return this.getClass().getSimpleName()"
+
+#define TO_STRING_WI \
+"        return super.toString()"
 
 #define TO_STRING_CONTENT \
 "\" %s = \" + this.%s"

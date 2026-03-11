@@ -7,9 +7,13 @@
 #include <unistd.h>
 
 void writeToFile(FILE *f, const char *className, const char *attVis, unsigned int attNumber, char **attNameArr,
-                 char **attTypeArr) {
+                 char **attTypeArr, int isInherited, char *parentClassName) {
     // class init
-    fprintf(f, CLASS, className);
+    if (isInherited == 1) {
+        fprintf(f, CLASS_WI, className, parentClassName);
+    } else {
+        fprintf(f, CLASS, className);
+    }
 
     // attributes
     for (int i = 0; i < attNumber; i++) {
@@ -60,7 +64,11 @@ void writeToFile(FILE *f, const char *className, const char *attVis, unsigned in
     // toString
     fprintf(f,"\n");
     fprintf(f, TO_STRING_OPEN);
-    fprintf(f, TO_STRING);
+    if (isInherited == 0) {
+        fprintf(f, TO_STRING);
+    } else {
+        fprintf(f, TO_STRING_WI);
+    }
     if (attNumber > 0) {
         fprintf(f, " + ");
         for (int i = 0; i < attNumber; i++) {
