@@ -1,6 +1,9 @@
 #ifndef TEMPLATE
 #define TEMPLATE
 
+#define PACKAGE \
+"package %s;\n\n"
+
 #define CLASS \
 "public class %s {\n"
 

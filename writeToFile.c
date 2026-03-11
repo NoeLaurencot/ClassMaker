@@ -6,9 +6,13 @@
 #include <string.h>
 #include <unistd.h>
 
-void writeToFile(FILE *f, const char *className, const char *attVis, unsigned int attNumber, char **attNameArr,
+void writeToFile(FILE *f, const char *className, char *packageName, const char *attVis, unsigned int attNumber, char **attNameArr,
                  char **attTypeArr, int isInherited, char *parentClassName) {
     // class init
+    if (packageName) {
+        fprintf(f, PACKAGE, packageName);
+    }
+
     if (isInherited == 1) {
         fprintf(f, CLASS_WI, className, parentClassName);
     } else {

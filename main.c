@@ -96,6 +96,34 @@ int isClassInherited() {
     }
 }
 
+char *getPackageName() {
+    int size = 1024;
+    char cwd[size];
+    if (getcwd(cwd, size) == NULL) {
+        printf("coucou");
+        return NULL;
+    }
+    char *p = strstr(cwd, "src/");
+    if (p) {
+        p += 4;
+        if (!p) {
+            return NULL;
+        }
+
+        char *result = malloc(sizeof(char) * 256);
+        strcpy(result, p);
+
+        for (int i = 0; result[i]; i++) {
+            if (result[i] == '/')
+                result[i] = '.';
+        }
+        return result;
+    } else {
+        printf("coucou");
+        return NULL;
+    }
+}
+
 FILE *createFile(char *className) {
     getClassName(className);
     char fullPath[2048] = "./";
@@ -105,13 +133,13 @@ FILE *createFile(char *className) {
 }
 
 void CLI(FILE *f, char *className) {
+    char *packageName = getPackageName();
     char parentClassName[512];
     int isInherited = isClassInherited();
     if (isInherited == 1) {
         getParentClassName(parentClassName);
     }
     char *attVis;
-    ;
     unsigned int attNumber = getAttNumber();
 
     if (attNumber > 0) {
@@ -125,7 +153,7 @@ void CLI(FILE *f, char *className) {
         attTypeArr[i] = getAttType(attNameArr[i]);
     }
 
-    writeToFile(f, className, attVis, attNumber, attNameArr, attTypeArr, isInherited, parentClassName);
+    writeToFile(f, className, packageName, attVis, attNumber, attNameArr, attTypeArr, isInherited, parentClassName);
 
     for (int i = 0; i < attNumber; i++) {
         free(attNameArr[i]);
@@ -133,6 +161,7 @@ void CLI(FILE *f, char *className) {
     }
     free(attNameArr);
     free(attTypeArr);
+    free(packageName);
 }
 
 int main(void) {
