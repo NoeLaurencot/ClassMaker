@@ -100,7 +100,6 @@ char *getPackageName() {
     int size = 1024;
     char cwd[size];
     if (getcwd(cwd, size) == NULL) {
-        printf("coucou");
         return NULL;
     }
     char *p = strstr(cwd, "src/");
@@ -119,7 +118,6 @@ char *getPackageName() {
         }
         return result;
     } else {
-        printf("coucou");
         return NULL;
     }
 }
