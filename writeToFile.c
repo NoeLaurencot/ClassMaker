@@ -1,0 +1,78 @@
+#include "writeToFile.h"
+#include "template.h"
+#include <ctype.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
+void writeToFile(FILE *f, const char *className, const char *attVis, unsigned int attNumber, char **attNameArr,
+                 char **attTypeArr) {
+    // class init
+    fprintf(f, CLASS, className);
+
+    // attributes
+    for (int i = 0; i < attNumber; i++) {
+        if (strcmp(attVis, "") == 0) {
+            fprintf(f, ATTRIBUTE, attTypeArr[i], attNameArr[i]);
+        } else {
+            fprintf(f, ATTRIBUTE_WVIS, attVis, attTypeArr[i], attNameArr[i]);
+        }
+    }
+
+    // empty constructor
+    fprintf(f, "\n");
+    fprintf(f, EMPTY_CONSTR, className);
+
+    // full constructor
+    if (attNumber > 0) {
+        fprintf(f, "\n");
+        fprintf(f, CONSTR_OPEN, className);
+
+        for (int i = 0; i < attNumber; i++) {
+            fprintf(f, CONSTR_PARAMETER, attTypeArr[i], attNameArr[i]);
+            if (i != attNumber - 1) {
+                fprintf(f, ", ");
+            } else {
+                fprintf(f, ") {\n");
+            }
+        }
+
+        for (int i = 0; i < attNumber; i++) {
+            fprintf(f, CONSTR_CONTENT, attNameArr[i], attNameArr[i]);
+        }
+        fprintf(f, "    }\n\n");
+    }
+
+    // getters and setters
+    if (attNumber > 0 && strcmp(attVis, "public") != 0) {
+        for (int i = 0; i < attNumber; i++) {
+            char *attNameUp = strdup(attNameArr[i]);
+            attNameUp[0] = toupper((unsigned char)attNameUp[0]);
+            fprintf(f, GETTER, attTypeArr[i], attNameUp, attNameArr[i]);
+            fprintf(f, "\n");
+            fprintf(f, SETTER, attNameUp, attTypeArr[i], attNameArr[i], attNameArr[i], attNameArr[i]);
+            if (i != attNumber - 1)
+                fprintf(f, "\n");
+        }
+    }
+
+    // toString
+    fprintf(f,"\n");
+    fprintf(f, TO_STRING_OPEN);
+    fprintf(f, TO_STRING);
+    if (attNumber > 0) {
+        fprintf(f, " + ");
+        for (int i = 0; i < attNumber; i++) {
+            fprintf(f, TO_STRING_CONTENT, attNameArr[i], attNameArr[i]);
+            if (i != attNumber - 1) {
+                fprintf(f, " + ");
+            }
+        }
+    }
+    fprintf(f, ";\n    }\n");
+
+
+
+    fprintf(f, "}");
+}
