@@ -1,13 +1,13 @@
-#include "writeToFile.h"
-#include "template.h"
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include "writeToFile.h"
+#include "template.h"
 
 void writeToFile(FILE *f, const char *className, char *packageName, const char *attVis, unsigned int attNumber, char **attNameArr,
-                 char **attTypeArr, int isInherited, char *parentClassName) {
+                 char **attTypeArr, int isInherited, char *parentClassName, classAttribute *parentAttList, int parentAttCount) {
     // class init
     if (packageName) {
         fprintf(f, PACKAGE, packageName);
@@ -37,6 +37,13 @@ void writeToFile(FILE *f, const char *className, char *packageName, const char *
         fprintf(f, "\n");
         fprintf(f, CONSTR_OPEN, className);
 
+        if (isInherited == 1) {
+            for (int i = 0; i < parentAttCount; i++) {
+                fprintf(f, CONSTR_PARAMETER, parentAttList[i].attType, parentAttList[i].attName);
+                fprintf(f, ", ");
+            }
+        }
+
         for (int i = 0; i < attNumber; i++) {
             fprintf(f, CONSTR_PARAMETER, attTypeArr[i], attNameArr[i]);
             if (i != attNumber - 1) {
@@ -46,9 +53,21 @@ void writeToFile(FILE *f, const char *className, char *packageName, const char *
             }
         }
 
+        if (isInherited == 1) {
+            fprintf(f,CONSTR_SUPER_OPEN);
+            for (int i = 0; i < parentAttCount; i++) {
+                fprintf(f, CONSTR_SUPER_PARAMETER, parentAttList[i].attName);
+                if (i != parentAttCount - 1) {
+                    fprintf(f,", ");
+                }
+            }
+            fprintf(f,");\n");
+        }
+
         for (int i = 0; i < attNumber; i++) {
             fprintf(f, CONSTR_CONTENT, attNameArr[i], attNameArr[i]);
         }
+
         fprintf(f, "    }\n\n");
     }
 

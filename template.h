@@ -26,7 +26,7 @@
 "%s %s"
 
 #define CONSTR_SUPER_OPEN \
-"       super("
+"        super("
 
 #define CONSTR_SUPER_PARAMETER \
 "%s"
