@@ -1,15 +1,21 @@
+#include "attribute.h"
+#include "writeToFile.h"
 #include <ctype.h>
+#include <dirent.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <dirent.h>
-#include "writeToFile.h"
-#include "attribute.h"
 
-unsigned int getAttNumber() {
+FILE *createFile(char *className);
+void CLI(FILE *f, char *className);
+int getNDirToCheck(char *path);
+
+unsigned int getAttNumber(char *className) {
     unsigned int n;
-    printf("How many attributes?\n");
+    char question[256];
+    snprintf(question, sizeof(question), "How many attributes for %s?\n", className);
+    printf("%s", question);
     scanf("%u", &n);
     return n;
 }
@@ -36,7 +42,7 @@ char *getAttVis() {
 char *getCustomType() {
     char *type = malloc(sizeof(char) * 256);
     if (!type) {
-        fprintf(stderr,"Memory allocation failed for customType\n");
+        fprintf(stderr, "Memory allocation failed for customType\n");
         exit(1);
     }
     printf("Custom data type:\n");
@@ -72,7 +78,7 @@ char *getAttType(char *attName) {
 char *getAttName(int i) {
     char *name = malloc(sizeof(char) * 256);
     if (!name) {
-        fprintf(stderr,"Memory allocation failed for attributeName\n");
+        fprintf(stderr, "Memory allocation failed for attributeName\n");
         exit(1);
     }
     printf("Name of the attribute n°%d:\n", i + 1);
@@ -93,14 +99,15 @@ void getParentClassName(char *className) {
     className[0] = toupper((unsigned char)className[0]);
 }
 
-int isClassInherited() {
+int askBoolean(const char *text) {
     char boolean;
-    printf("Is this class inherited (y/n)?\n");
+    printf("%s (y/n)\n", text);
     scanf(" %c", &boolean);
     switch (boolean) {
     case 'y':
         return 1;
     case 'n':
+        return 0;
     default:
         return 0;
     }
@@ -182,15 +189,13 @@ char *parseParentExtends(char *filePath) {
     char *afterExtends = extendsPos + 7;
 
     sscanf(afterExtends, "%s", parentClass);
-
-    printf("Parent class: %s\n", parentClass);
     fclose(file);
     return parentClass;
 }
 
 char *stripAttLine(char *line) {
-    char *modifiers[] = {"private ", "protected ", "public ", "static ", "final "};
-    int nModifiers = 5;
+    char *modifiers[] = {"private ", "protected ", "public ", "final "};
+    int nModifiers = 4;
     int found = 1;
     while (found) {
         found = 0;
@@ -234,7 +239,8 @@ char *parseParentAttributes(char *filePath, int startLine) {
 
     int len = strlen(parentAtt);
     while (len > 0 && (parentAtt[len - 1] == '\n' || parentAtt[len - 1] == '\r' || parentAtt[len - 1] == ';')) {
-        parentAtt[--len] = '\0';
+        len--;
+        parentAtt[len] = '\0';
     }
 
     while (*parentAtt == ' ' || *parentAtt == '\t') {
@@ -281,9 +287,36 @@ classAttribute getParentAttribute(char *line) {
     return attribute;
 }
 
-char *findFileInDirs(char *path, char *fileName, int nDirToCheck) {
+char *findFileInDirs(char *path, int nDirToCheck, char *parent) {
+    char *classFileName = malloc(strlen(parent) + 6);
+    if (!classFileName) {
+        fprintf(stderr, "Memory allocation failed for classFileName\n");
+        exit(1);
+    }
+    strcpy(classFileName, parent);
+    strcat(classFileName, ".java");
     if (nDirToCheck < 1) {
-        return NULL;
+        free(classFileName);
+        int isCreated = askBoolean("The parent class dosen't exist or wasn't found, do you want to create it?");
+        if (isCreated == 1) {
+            FILE *f = createFile(parent);
+            if (f == NULL) {
+                printf("Error: the file already exists or cannot be created.\n");
+                return NULL;
+            }
+            char *p = getPathFromSrc();
+            if (!p) {
+                p = strdup("./");
+            }
+            CLI(f, parent);
+            fclose(f);
+            printf("Parent ok, going back to child\n");
+            char *result = findFileInDirs("./", getNDirToCheck(p), parent);
+            free(p);
+            return result;
+        } else {
+            return NULL;
+        }
     }
     DIR *dir = opendir(path);
     if (!dir) {
@@ -294,7 +327,7 @@ char *findFileInDirs(char *path, char *fileName, int nDirToCheck) {
 
     file = readdir(dir);
     while (file) {
-        if (strcmp(file -> d_name, fileName) == 0) {
+        if (strcmp(file->d_name, classFileName) == 0) {
             break;
         }
         file = readdir(dir);
@@ -302,15 +335,17 @@ char *findFileInDirs(char *path, char *fileName, int nDirToCheck) {
     closedir(dir);
 
     if (file) {
-        char *filePath = malloc(strlen(path) + strlen(fileName) + 1);
+        char *filePath = malloc(strlen(path) + strlen(classFileName) + 1);
         if (!filePath) {
             fprintf(stderr, "Memory allocation failed for filePath");
             exit(1);
         }
         strcpy(filePath, path);
-        strcat(filePath, fileName);
+        strcat(filePath, classFileName);
+        free(classFileName);
         return filePath;
     } else {
+        free(classFileName);
         char backPath[] = "../";
         char *newPath = malloc(strlen(path) + strlen(backPath) + 1);
         if (!newPath) {
@@ -319,13 +354,13 @@ char *findFileInDirs(char *path, char *fileName, int nDirToCheck) {
         }
         strcpy(newPath, backPath);
         strcat(newPath, path);
-        char *result = findFileInDirs(newPath, fileName, nDirToCheck - 1);
+        char *result = findFileInDirs(newPath, nDirToCheck - 1, parent);
         free(newPath);
         return result;
     }
 }
 
-char **searchParentFilePath(char *path, char *parent, int nDirToCheck, int *nFiles) {
+char **searchParentsFilePaths(char *path, char *parent, int nDirToCheck, int *nFiles) {
     char **filePaths = malloc(sizeof(char *) * 256);
     if (!filePaths) {
         fprintf(stderr, "Memory allocation failed for filePaths\n");
@@ -333,16 +368,7 @@ char **searchParentFilePath(char *path, char *parent, int nDirToCheck, int *nFil
     }
     *nFiles = 0;
 
-    char *classFileName = malloc(strlen(parent) + 6);
-    if (!classFileName) {
-        fprintf(stderr, "Memory allocation failed for classFileName\n");
-        exit(1);
-    }
-    strcpy(classFileName, parent);
-    strcat(classFileName, ".java");
-
-    char *filePath = findFileInDirs(path, classFileName, nDirToCheck);
-    free(classFileName);
+    char *filePath = findFileInDirs(path, nDirToCheck, parent);
 
     if (!filePath) {
         free(filePaths);
@@ -353,12 +379,14 @@ char **searchParentFilePath(char *path, char *parent, int nDirToCheck, int *nFil
     char *grandParent = parseParentExtends(filePath);
     if (grandParent) {
         int nAncestorFiles = 0;
-        char **ancestorPaths = searchParentFilePath(path, grandParent, nDirToCheck, &nAncestorFiles);
+        char **ancestorPaths = searchParentsFilePaths(path, grandParent, nDirToCheck, &nAncestorFiles);
         free(grandParent);
 
         if (ancestorPaths) {
             for (int i = 0; i < nAncestorFiles; i++) {
-                filePaths[(*nFiles)++] = ancestorPaths[i];
+                int dst = *nFiles;
+                filePaths[dst] = ancestorPaths[i];
+                *nFiles = dst + 1;
             }
             free(ancestorPaths);
         }
@@ -386,13 +414,13 @@ classAttribute *getParentsAttributes(char *parent, int *nParentAtt) {
     }
     struct classAttribute *attributeList = malloc(sizeof(classAttribute) * 256);
     if (!attributeList) {
-        fprintf(stderr,"Memory allocation failed for attributeList\n");
+        fprintf(stderr, "Memory allocation failed for attributeList\n");
         exit(1);
     }
 
     int nFiles = 0;
     char *startPath = strdup("./");
-    char **filePaths = searchParentFilePath(startPath, parent, getNDirToCheck(p), &nFiles);
+    char **filePaths = searchParentsFilePaths(startPath, parent, getNDirToCheck(p), &nFiles);
     free(startPath);
     free(p);
 
@@ -436,7 +464,7 @@ char *getPackageName() {
 
         char *result = malloc(sizeof(char) * 256);
         if (!result) {
-            fprintf(stderr,"Memory allocation failed for packageNameResult\n");
+            fprintf(stderr, "Memory allocation failed for packageNameResult\n");
             free(p);
             exit(1);
         }
@@ -453,14 +481,7 @@ char *getPackageName() {
     }
 }
 
-void freePathFromSrc(char *p) {
-    if (p) {
-        free(p);
-    }
-}
-
 FILE *createFile(char *className) {
-    getClassName(className);
     char fullPath[2048] = "./";
     strcat(fullPath, className);
     strcat(fullPath, ".java");
@@ -470,47 +491,48 @@ FILE *createFile(char *className) {
 void CLI(FILE *f, char *className) {
     char *packageName = getPackageName();
     char parentClassName[512] = "";
-    int isInherited = isClassInherited();
+    char question[512];
+    snprintf(question, sizeof(question), "Is %s class inherited?", className);
+    int isInherited = askBoolean(question);
+
+    classAttribute *parentAttList = NULL;
+    int parentAttCount = 0;
     if (isInherited == 1) {
         getParentClassName(parentClassName);
+        parentAttList = getParentsAttributes(parentClassName, &parentAttCount);
     }
     char *attVis = "";
-    unsigned int attNumber = getAttNumber();
+    unsigned int attNumber = getAttNumber(className);
 
     if (attNumber > 0) {
         attVis = getAttVis();
     }
 
-    char **attTypeArr = malloc(sizeof(char *) * attNumber);
-    char **attNameArr = malloc(sizeof(char *) * attNumber);
-    if (!attNameArr || !attTypeArr) {
-        fprintf(stderr,"Memory allocation failed for parent attributes\n");
+    classAttribute *classAttList = malloc(sizeof(classAttribute) * attNumber);
+    if (!classAttList) {
+        fprintf(stderr, "Memory allocation failed for attributeList\n");
         exit(1);
     }
-    for (int i = 0; i < attNumber; i++) {
-        attNameArr[i] = getAttName(i);
-        attTypeArr[i] = getAttType(attNameArr[i]);
+
+    for (unsigned int i = 0; i < attNumber; i++) {
+        classAttList[i].attName = getAttName(i);
+        classAttList[i].attType = getAttType(classAttList[i].attName);
     }
 
-    classAttribute *parentAttList = NULL;
-    int parentAttCount = 0;
-    if (isInherited == 1) {
-        parentAttList = getParentsAttributes(parentClassName, &parentAttCount);
-    }
+    writeToFile(f, className, packageName, attVis, attNumber, classAttList, isInherited, parentClassName, parentAttList,
+                parentAttCount);
 
-    writeToFile(f, className, packageName, attVis, attNumber, attNameArr, attTypeArr, isInherited, parentClassName, parentAttList, parentAttCount);
-
-    for (int i = 0; i < attNumber; i++) {
-        free(attNameArr[i]);
-        free(attTypeArr[i]);
+    for (unsigned int i = 0; i < attNumber; i++) {
+        free(classAttList[i].attName);
+        free(classAttList[i].attType);
     }
-    free(attNameArr);
-    free(attTypeArr);
+    free(classAttList);
     free(packageName);
 }
 
 int main(void) {
     char className[512];
+    getClassName(className);
     FILE *f = createFile(className);
     if (f == NULL) {
         printf("Error: the file already exists or cannot be created.\n");

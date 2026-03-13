@@ -4,6 +4,9 @@
 #define PACKAGE \
 "package %s;\n\n"
 
+#define IMPORT \
+"import %s;\n"
+
 #define CLASS \
 "public class %s {\n"
 
@@ -11,45 +14,96 @@
 "public class %s extends %s {\n"
 
 #define ATTRIBUTE_WVIS \
-"    %s %s %s;\n"
+"\t%s %s %s;\n"
 
 #define ATTRIBUTE \
-"    %s %s;\n"
+"\t%s %s;\n"
 
 #define EMPTY_CONSTR \
-"    public %s() {}\n"
+"\tpublic %s() {}\n"
 
 #define CONSTR_OPEN \
-"    public %s("
+"\tpublic %s("
 
 #define CONSTR_PARAMETER \
 "%s %s"
 
+#define CONSTR_PARAMETER_COPY \
+"%s %c"
+
 #define CONSTR_SUPER_OPEN \
-"        super("
+"\t\tsuper("
 
 #define CONSTR_SUPER_PARAMETER \
 "%s"
 
+#define CONSTR_SUPER_COPY \
+"%c);\n\t\tif (%c == null) {\n\t\t\tthrow new IllegalArgumentException(\"%s cannot be null\");\n\t\t}\n"
+
 #define CONSTR_CONTENT \
-"        this.%s = %s;\n"
+"\t\tthis.%s = %s;\n"
+
+#define CONSTR_CONTENT_COPY \
+"\t\tthis.%s = %c.get%s();\n"
 
 #define GETTER \
-"    public %s get%s() {\n        return this.%s;\n    }\n"
+"\tpublic %s get%s() {\n\t\treturn this.%s;\n\t}\n"
 
 #define SETTER \
-"    public void set%s(%s %s) {\n        this.%s = %s;\n    }\n"
+"\tpublic void set%s(%s %s) {\n\t\tthis.%s = %s;\n\t}\n"
 
 #define TO_STRING_OPEN \
-"    public String toString() {\n"
+"\tpublic String toString() {\n"
 
 #define TO_STRING \
-"        return this.getClass().getSimpleName()"
+"\t\treturn this.getClass().getSimpleName()"
 
 #define TO_STRING_WI \
-"        return super.toString()"
+"\t\treturn super.toString()"
 
 #define TO_STRING_CONTENT \
 "\" %s = \" + this.%s"
+
+#define TO_STRING_CONTENT_ARR \
+"\" %s = \" + Arrays.toString(this.%s)"
+
+#define TO_STRING_CONTENT_DEEP_ARR \
+"\" %s = \" + Arrays.deepToString(this.%s)"
+
+#define EQUALS \
+"\tpublic boolean equals(Object o) {\n\t\tif (o == null) {\n\t\t\treturn false;\n\t\t}\n\t\tif (!(o instanceof %s %c)) {\n\t\t\treturn false;\n\t\t}\n\t\treturn "
+
+#define EQUALS_SUPER \
+"super.equals(%c)"
+
+#define EQUALS_CONTENT \
+"this.%s == %c.get%s()"
+
+#define EQUALS_CONTENT_OBJ \
+"this.%s.equals(%c.get%s())"
+
+#define EQUALS_CONTENT_ARR \
+"Arrays.equals(this.%s, %c.get%s())"
+
+#define EQUALS_CONTENT_DEEP_ARR \
+"Arrays.deepEquals(this.%s, %c.get%s())"
+
+#define HASH_CODE \
+"\tpublic int hashCode() {\n"
+
+#define HASH_CODE_CONTENT \
+"\t\treturn Objects.hash("
+
+#define HASH_CODE_CONTENT_NONPRIM \
+"\t\tint hashResult = Objects.hash("
+
+#define HASH_CODE_SUPER \
+"super.hashCode()"
+
+#define HASH_CODE_PARAM \
+"this.%s"
+
+#define HASH_CODE_NONPRIM \
+"\t\thashResult = 31 * hashResult + Arrays.%s"
 
 #endif
