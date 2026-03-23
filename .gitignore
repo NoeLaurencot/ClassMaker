@@ -56,3 +56,6 @@ dkms.conf
 
 # object name
 classMaker
+makeClass
+
+build/
