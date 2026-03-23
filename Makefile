@@ -1,18 +1,15 @@
 CC = gcc
-TARGET = classMaker
-CFLAGS = -O2
+CFLAGS = -O2 -Iinclude
 
-$(TARGET): main.o writeToFile.o
+TARGET = build/mkjava
+SRCS = $(wildcard src/*.c)
+OBJS = $(patsubst src/%.c, build/%.o, $(SRCS))
+
+$(TARGET): $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $^
-	
 
-main.o: main.c writeToFile.h
-writeToFile.o: writeToFile.c writeToFile.h template.h
-
-%.o:%.c
+build/%.o: src/%.c 
 	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	rm -f *.o
-	rm -f $(TARGET)
-
+	rm -rf build/
