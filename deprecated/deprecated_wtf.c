@@ -1,9 +1,9 @@
+// deprecated
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include "writeToFile.h"
 #include "template.h"
 
 int isArray(char *type) {

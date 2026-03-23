@@ -1,5 +1,5 @@
+// deprecated
 #include "attribute.h"
-#include "writeToFile.h"
 #include <ctype.h>
 #include <dirent.h>
 #include <stdio.h>
