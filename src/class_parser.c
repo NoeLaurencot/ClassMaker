@@ -9,7 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-static const LINE_LENGTH = 512;
+static const int LINE_LENGTH = 512;
 
 /**
  * @brief Advances by n lines in given file
@@ -163,7 +163,7 @@ char *get_class_vis(FILE *file, int class_line) {
  * @param class_line `int` Line number of the class definition
  * @return `char *` - The class name
  */
-char *get_class_name(FILE *file, int class_line) {
+char *get_class_name_upper(FILE *file, int class_line) {
     rewind(file);
 
     char *line = extract_nth_line(file, class_line - 1);
@@ -185,7 +185,7 @@ char *get_class_name(FILE *file, int class_line) {
  * @param class_line `int` Line number of the class definition
  * @return `char *` - The parent class name
  */
-char *get_parent_class_name(FILE *file, int class_line) {
+char *get_parent_class_name_upper(FILE *file, int class_line) {
     rewind(file);
 
     char *line = extract_nth_line(file, class_line - 1);
@@ -207,7 +207,7 @@ char *get_parent_class_name(FILE *file, int class_line) {
  * @param class_line `int` Line number of the class definition
  * @return `int` - Count of attributes of a class
  */
-int get_n_attribute(FILE *file, int class_line) {
+int get_attribute_count(FILE *file, int class_line) {
     rewind(file);
 
     if (!advance_n_lines(file, class_line)) {
