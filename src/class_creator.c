@@ -1,5 +1,6 @@
 #include "class_creator.h"
 #include "class_parser.h"
+#include "class_writer.h"
 #include "enums.h"
 #include "java_str.h"
 #include "mem_check.h"
@@ -14,12 +15,17 @@
 #include <string.h>
 #include <unistd.h>
 
-static const int MAX_CLASS_NAME_LENGTH = 256;
+static const int MAX_class_name_upper_LENGTH = 256;
 static const int MAX_CLASS = 256;
 static const int MAX_FILEPATH_LENGTH = 256;
 static const int MAX_ATT_NAME_LENGTH = 256;
 static const int MAX_ATT_TYPE_LENGTH = 256;
 static const int MAX_DIR_NAME_LENGTH = 256;
+static const int MAX_IMPORTS = 32;
+
+// Forward declerations
+
+void create_class(class_t **class_arr, int n_class);
 
 /**
  * @brief Counts the number of directory levels in a path based on '/' count
@@ -90,16 +96,197 @@ char *search_filepath_in_dirs(char *filename, int search_depth) {
     return filepath;
 }
 
-void ask_create_parent_class(class_t *class, class_t **class_arr, int n_class) {
-    printf("Is %s class inherited? (y/n)\n", class->class_name);
+FILE *create_file(char *filename) {
+    FILE *file = fopen(filename, "wx");
+    mem_check(file, "error: couldn't create file");
+    return file;
+}
+
+void init_class(void) {
+    class_t **class_arr = calloc(MAX_CLASS, sizeof(class_t *));
+    malloc_check(class_arr, "creating class array");
+
+    create_class(class_arr, 0);
+}
+
+char *ask_class_name_upper(class_t **class_arr, int n_class) {
+
+    if (n_class == 1)
+        printf("What is the class name?\n");
+    else
+        printf("What is the name of the parent class of %s?\n", class_arr[n_class - 2]->class_name_upper);
+
+    return scan_string(MAX_class_name_upper_LENGTH);
+}
+
+void set_import_arr(class_t *class) {
+    char **import_arr = calloc(MAX_IMPORTS, sizeof(char *));
+    malloc_check(import_arr, "creating class import array");
+    int counter = 0;
+
+    int arrays_imported = 0;
+    int arraylist_imported = 0;
+    int linkedlist_imported = 0;
+    int list_imported = 0;
+    int hashmap_imported = 0;
+    int map_imported = 0;
+    int hashset_imported = 0;
+    int set_imported = 0;
+    int deque_imported = 0;
+    int queue_imported = 0;
+    int optional_imported = 0;
+    int localdatetime_imported = 0;
+    int localdate_imported = 0;
+    int date_imported = 0;
+
+    for (int i = 0; i < class->n_attribute; i++) {
+        class_attribute_t *att = class->class_attribute_arr[i];
+
+        // TODO: redo the check but right now it works
+        // Checks most of data type related import
+        if ((att->is_simple_array || att->is_deep_array) && !arrays_imported) {
+            import_arr[counter++] = str_dup("java.util.Arrays");
+            arrays_imported = 1;
+        } else if (strstr(att->att_type, "ArrayList") && !arraylist_imported) {
+            import_arr[counter++] = str_dup("java.util.ArrayList");
+            arraylist_imported = 1;
+        } else if (strstr(att->att_type, "LinkedList") && !linkedlist_imported) {
+            import_arr[counter++] = str_dup("java.util.LinkedList");
+            linkedlist_imported = 1;
+        } else if (strstr(att->att_type, "List") && !list_imported) {
+            import_arr[counter++] = str_dup("java.util.List");
+            list_imported = 1;
+        } else if (strstr(att->att_type, "HashMap") && !hashmap_imported) {
+            import_arr[counter++] = str_dup("java.util.HashMap");
+            hashmap_imported = 1;
+        } else if (strstr(att->att_type, "Map") && !map_imported) {
+            import_arr[counter++] = str_dup("java.util.Map");
+            map_imported = 1;
+        } else if (strstr(att->att_type, "HashSet") && !hashset_imported) {
+            import_arr[counter++] = str_dup("java.util.HashSet");
+            hashset_imported = 1;
+        } else if (strstr(att->att_type, "Set") && !set_imported) {
+            import_arr[counter++] = str_dup("java.util.Set");
+            set_imported = 1;
+        } else if (strstr(att->att_type, "Deque") && !deque_imported) {
+            import_arr[counter++] = str_dup("java.util.Deque");
+            deque_imported = 1;
+        } else if (strstr(att->att_type, "Queue") && !queue_imported) {
+            import_arr[counter++] = str_dup("java.util.Queue");
+            queue_imported = 1;
+        } else if (strstr(att->att_type, "Optional") && !optional_imported) {
+            import_arr[counter++] = str_dup("java.util.Optional");
+            optional_imported = 1;
+        } else if (strstr(att->att_type, "LocalDateTime") && !localdatetime_imported) {
+            import_arr[counter++] = str_dup("java.time.LocalDateTime");
+            localdatetime_imported = 1;
+        } else if (strstr(att->att_type, "LocalDate") && !localdate_imported) {
+            import_arr[counter++] = str_dup("java.time.LocalDate");
+            localdate_imported = 1;
+        } else if (strstr(att->att_type, "Date") && !date_imported) {
+            import_arr[counter++] = str_dup("java.util.Date");
+            date_imported = 1;
+        }
+    }
+    class->n_import = counter;
+    if (counter > 0)
+        class->class_import_arr = import_arr;
+    else
+        free(import_arr);
+}
+
+void ask_create_parent_class(class_t **class_arr, int n_class) {
+    class_t *class = class_arr[n_class - 1];
+
+    printf("Is %s class inherited? (y/n)\n", class->class_name_upper);
     if (scan_boolean()) {
-        class->parent_class_arr = calloc(64, sizeof(class_t *));
+        class->parent_class_arr = calloc(MAX_CLASS, sizeof(class_t *));
         malloc_check(class->parent_class_arr, "creating parent class array");
 
-        create_parent_class(class_arr, n_class);
+        create_class(class_arr, n_class);
 
-        printf("%s done, going back to %s\n", class->parent_class_arr[1]->class_name, class->class_name);
+        printf("%s done, going back to %s\n", class->parent_class_arr[1]->class_name_upper, class->class_name_upper);
+    } else { // stop recursion, fill each children parent class array with every parent class
+        // each children class
+        for (int i = 0; i < n_class - 1; i++) {
+            // fill child parent class array
+            for (int j = 1; j < n_class; j++) {
+                class_arr[i]->parent_class_arr[j] = class;
+                class_arr[i]->n_parent_class++;
+            }
+        }
     }
+}
+
+void set_class_vis(class_t *class) {
+    char *vis_lookup_arr[] = {"public", "private", "protected"};
+
+    printf("Visibility of \"%s\"\n"
+        "1. Public\n"
+        "2. Private\n"
+        "3. Protected\n",
+        class->class_name_upper);
+    class->class_vis = str_dup(vis_lookup_arr[scan_min_max_int(1, 3) - 1]);
+}
+
+void set_attributes_flag(class_t *class) {
+    for (int i = 0; i < class->n_attribute; i++) {
+        class_attribute_t *att = class->class_attribute_arr[i];
+
+        att->is_deep_array = is_deep_array(att);
+
+        att->is_simple_array = is_simple_array(att);
+
+        att->is_primitive = is_primitive(att);
+    }
+}
+
+void create_attribute(class_t *class, int i, int vis_pref) {
+
+    char *type_lookup_arr[] = {"int", "double", "String", "boolean"};
+    char *vis_lookup_arr[] = {"public", "private", "protected"};
+
+    class->class_attribute_arr[i] = calloc(1, sizeof(class_attribute_t));
+
+    class_attribute_t *att = class->class_attribute_arr[i];
+    malloc_check(att, "creating class attribute");
+
+    printf("Name of attribute n°%d of %s\n", i + 1, class->class_name_upper);
+    att->att_name = scan_string(MAX_ATT_NAME_LENGTH);
+
+    printf("Type of attribute \"%s\"\n"
+           "1. int\n"
+           "2. double\n"
+           "3. String\n"
+           "4. boolean\n"
+           "5. Custom\n",
+           att->att_name);
+    int att_type_answer = scan_min_max_int(1, TYPE_COUNT) - 1;
+    if (att_type_answer <= TYPE_BOOLEAN) { // option 1 -> 4
+        att->att_type = str_dup(type_lookup_arr[att_type_answer]);
+    } else if (att_type_answer == TYPE_CUSTOM) {
+        // set custom type
+        printf("Custom type\n");
+        att->att_type = scan_string(MAX_ATT_TYPE_LENGTH);
+    } else { // default
+        att->att_type = str_dup("Object");
+    }
+    malloc_check(att->att_type, "creating attribute type");
+
+    if (vis_pref <= VIS_PROTECTED) { // global visibility option 1 -> 3
+        att->att_vis = str_dup(vis_lookup_arr[vis_pref]);
+    } else if (vis_pref == VIS_CHOOSE_EACH) {
+        // set visibility for specific attribute
+        printf("Visibility of attribute \"%s\"\n"
+               "1. Public\n"
+               "2. Private\n"
+               "3. Protected\n",
+               att->att_name);
+        att->att_vis = str_dup(vis_lookup_arr[scan_min_max_int(1, 3) - 1]);
+    } else {
+        att->att_vis = NULL;
+    }
+    malloc_check(att->att_vis, "creating attribute visibility");
 }
 
 /**
@@ -108,199 +295,48 @@ void ask_create_parent_class(class_t *class, class_t **class_arr, int n_class) {
  * @note Populates class in place
  */
 void create_class_attributes(class_t *class) {
-    // TODO: refactor this function -> too big
-
-    char *type_lookup_arr[] = {"int", "double", "String", "boolean"};
-    char *vis_lookup_arr[] = {"private", "public", "protected"};
-
-    printf("Attributes visibility of %s (default: Friendly)\n"
-           "1. Private"
-           "2. Public"
-           "3. Protected"
-           "4. Decide for each attribute",
-           class->class_name);
-    int vis_pref = scan_min_max_int(1, VIS_COUNT) - 1;
-
-    printf("How many attributes for %s?\n", class->class_name);
-    class->n_attributes = scan_unsigned_int();
-    class->class_attribute_arr = calloc(class->n_attributes, sizeof(class_attribute_t *));
+    // set attribute count
+    printf("How many attributes for %s?\n", class->class_name_upper);
+    class->n_attribute = scan_unsigned_int();
+    if (class->n_attribute == 0)
+        return;
+    class->class_attribute_arr = calloc(class->n_attribute, sizeof(class_attribute_t *));
     malloc_check(class->class_attribute_arr, "creating attribute array");
 
-    for (int i = 0; i < class->n_attributes; i++) {
-        class_attribute_t *att = class->class_attribute_arr[i];
+    // set global visibility
+    printf("Attributes visibility of %s\n"
+           "1. Private\n"
+           "2. Public\n"
+           "3. Protected\n"
+           "4. Decide for each attribute\n",
+           class->class_name_upper);
+    int vis_pref = scan_min_max_int(1, VIS_COUNT) - 1;
 
-        att = calloc(1, sizeof(class_attribute_t));
-        malloc_check(att, "creating class attribute");
-
-        printf("Name of attribute n°%d of %s\n", i, class->class_name);
-        att->att_name = scan_string(MAX_ATT_NAME_LENGTH);
-
-        printf("Type of attribute n°%d of %s (default: Object)\n"
-               "1. int\n"
-               "2. double\n"
-               "3. String\n"
-               "4. boolean\n"
-               "5. Custom\n",
-               i, class->class_name);
-        int answer = scan_min_max_int(1, TYPE_COUNT) - 1;
-        if (answer <= TYPE_BOOLEAN) { // every standard type
-            att->att_type = str_dup(type_lookup_arr[answer - 1]);
-        } else if (answer == TYPE_CUSTOM) {
-            printf("Custom type\n");
-            att->att_type = scan_string(MAX_ATT_TYPE_LENGTH);
-        } else { // default
-            att->att_type = str_dup("Object");
-        }
-        malloc_check(att->att_type, "creating attribute type");
-
-        if (vis_pref <= VIS_PROTECTED) { // every standard visibility
-            att->att_vis = str_dup(vis_lookup_arr[vis_pref - 1]);
-        } else if (vis_pref == VIS_CHOOSE_EACH) {
-            printf("Visibility of attribute n°%d of %s (default: Friendly)\n"
-                   "1. Private"
-                   "2. Public"
-                   "3. Protected",
-                   i, class->class_name);
-            att->att_vis = vis_lookup_arr[scan_min_max_int(1, 3) - 1];
-        } else {
-            att->att_vis = str_dup("");
-        }
-        malloc_check(att->att_vis, "creating attribute visibility");
-
-        att->is_deep_array = is_deep_array(att);
-
-        att->is_simple_array = is_simple_array(att);
-
-        att->is_primitive = is_primitive(att);
-
-        class->class_import_arr = calloc(32, sizeof(char *));
-        malloc_check(class->class_import_arr, "creating class import array");
-
-        if (att->is_simple_array || att->is_deep_array) {
-            class->class_import_arr[i] = str_dup("java.util.Arrays");
-        } else if (strstr(att->att_type, "ArrayList")) {
-            class->class_import_arr[i] = str_dup("java.util.ArrayList");
-        } else if (strstr(att->att_type, "List")) {
-            class->class_import_arr[i] = str_dup("java.util.List");
-        }
+    // main attribute creating loop
+    for (int i = 0; i < class->n_attribute; i++) {
+        create_attribute(class, i, vis_pref);
     }
 }
 
-void read_class(FILE *file, class_t *class) {
-}
-
-void create_parent_class(class_t **class_arr, int class_arr_n_element) {
+void set_class_from_user(class_t **class_arr, int n_class) {
     class_t **parent_class_arr;
 
-    class_t *class = calloc(1, sizeof(class_t));
-    malloc_check(class, "creating parent class");
+    class_t *class = class_arr[n_class - 1];
 
-    class->java_type = JAVA_TYPE_CLASS;
+    ask_create_parent_class(class_arr, n_class);
 
-    class_arr[class_arr_n_element] = class;
-    class_arr_n_element++;
-
-    printf("What is the name of the parent class of %s?\n", class_arr[class_arr_n_element - 2]->class_name);
-    class->class_name = scan_string(MAX_CLASS_NAME_LENGTH);
-    first_letter_to_upper(class->class_name);
-
-    char *filename = name_to_filename(class->class_name);
-    char *cwd_src = get_cwd_src();
-    class->class_package = get_package_name(cwd_src);
-    class->relative_filepath = search_filepath_in_dirs(filename, get_n_dir_to_check(cwd_src));
-    free(cwd_src);
-    free(filename);
-
-    if (class->relative_filepath) { // file exists
-        FILE *file = fopen(class->relative_filepath, "r");
-        mem_check(file, "error: couldn't open parent class file");
-
-        int class_line = get_class_line(file);
-        // TODO: handle different packages and friendly class
-        if (get_class_final(file, class_line) || strstr(get_class_vis(file, class_line), "private")) {
-            fclose(file);
-            fprintf(stderr, "error: couldn't extend parent class as it was final or private");
-            return;
-        }
-        create_class_attributes_from_file(file, class);
-    } else { // file doesn't exist
-        // TODO: ask user if wants to re enter class name
-        printf("%s doesn't exist or wasn't found, do you want to create it? (y/n)", class->class_name);
-        if (scan_boolean()) {
-            class->relative_filepath = str_dup("./");
-
-            ask_create_parent_class(class, class_arr, class_arr_n_element);
-
-            create_class_attributes(class);
-        } else {
-            free(class->class_name);
-            free(class->java_type);
-            free(class);
-            class_arr[class_arr_n_element - 1] = '\0';
-            return;
-        }
-    }
-
-    for (int i = 0; i < class_arr_n_element - 1; i++) {
-        for (int j = 1; j < class_arr_n_element; j++) {
-            class_arr[i]->parent_class_arr[j] = class;
-            class_arr[i]->n_parent_class++;
-        }
-    }
-}
-
-/**
- * @brief Creates a new Java class and manages inheritance hierarchy
- */
-void populate_class_from_user(void) {
-    class_t **parent_class_arr;
-    class_t **class_arr = calloc(MAX_CLASS, sizeof(class_t *));
-    malloc_check(class_arr, "creating class array");
-
-    class_t *class = calloc(1, sizeof(class_t));
-    malloc_check(class, "creating class");
-
-    class->java_type = JAVA_TYPE_CLASS;
-
-    class_arr[0] = class;
-
-    printf("What is the class name?\n");
-    class->class_name = scan_string(MAX_CLASS_NAME_LENGTH);
-
-    char *filename = name_to_filename(class->class_name);
-    class->relative_filepath = concat_str("./", filename);
-    free(filename);
-    malloc_check(class->relative_filepath, "creating relative filepath");
-    first_letter_to_upper(class->class_name);
-
-    FILE *tmp_file = fopen(class->relative_filepath, "r");
-    if (tmp_file) {
-        fprintf(stderr, "error: file already exists");
-        fclose(tmp_file);
-        exit(1); // TODO: free everything before exiting for cleaner exit
-    }
-
-    char *cwd_src = get_cwd_src();
-    class->class_package = get_package_name(cwd_src);
-    free(cwd_src);
-
-    printf("Is %s class final? (y/n)\n", class->class_name);
+    printf("Is %s class final? (y/n)\n", class->class_name_upper);
     if (scan_boolean()) {
         class->is_final = 1;
     } else {
         class->is_final = 0;
     }
 
-    ask_create_parent_class(class, class_arr, 1); // 1 because only current class in class array
+    set_class_vis(class);
 
     create_class_attributes(class);
-}
-
-void init_class() {
-    class_t **class_arr = calloc(MAX_CLASS, sizeof(class_t *));
-    malloc_check(class_arr, "creating class array");
-
-    create_class(class_arr, 0);
+    set_attributes_flag(class);
+    set_import_arr(class);
 }
 
 void create_class(class_t **class_arr, int n_class) {
@@ -312,42 +348,70 @@ void create_class(class_t **class_arr, int n_class) {
 
     class->java_type = JAVA_TYPE_CLASS;
 
-    if (n_class == 1)
-        printf("What is the class name?\n");
-    else
-        printf("What is the name of the parent class of %s?\n", class_arr[n_class - 2]->class_name);
+    class->class_name_lower = ask_class_name_upper(class_arr, n_class);
+    class->class_name_upper = first_letter_to_upper_dup(class->class_name_lower);
 
-    class->class_name = scan_string(MAX_CLASS_NAME_LENGTH);
-    first_letter_to_upper(class->class_name);
-
-    char *filename = name_to_filename(class->class_name);
+    class->filename = name_to_filename(class->class_name_upper);
     char *cwd_src = get_cwd_src();
-    class->class_package = get_package_name(cwd_src);
-    class->relative_filepath = search_filepath_in_dirs(filename, get_n_dir_to_check(cwd_src));
-    free(cwd_src);
 
     if (n_class == 1) {
-        if (is_file_in_dir(filename, "./")) {
-            fprintf(stderr, "error: file already exists");
+        class->class_package = get_package_name(cwd_src);
+
+        class->relative_filename = concat_str("./", class->filename);
+        if (is_file_in_dir(class->filename, "./")) {
+            fprintf(stderr, "error: file already exists\n");
+            // TODO: free everything before exiting for cleaner exit
             exit(1);
         }
     } else {
-        if (class->relative_filepath) {
+        class->relative_filename = search_filepath_in_dirs(class->filename, get_n_dir_to_check(cwd_src));
+    }
+
+    free(cwd_src);
+
+    if (n_class > 1) {
+        if (class->relative_filename) { // file found
             // TODO: read class
-        } else {
-            printf("%s doesn't exist, do you want to create it? (y/n)", class->class_name);
-            if (!scan_boolean()) { // parent class not created
-                free(class->java_type);
+        } else { // file not found
+            printf("%s doesn't exist or wasn't found, do you want to create it? (y/n)", class->class_name_upper);
+            if (!scan_boolean()) { // parent class not created so undo class structure
                 if (class->class_package)
                     free(class->class_package);
-                free(class->class_name);
+                free(class->class_name_upper);
                 free(class);
                 class_arr[n_class - 1] = '\0';
                 n_class--;
                 return;
             }
 
-            create_class(class_arr, n_class);
+            set_class_from_user(class_arr, n_class);
         }
+    } else {
+        set_class_from_user(class_arr, n_class);
     }
+
+    class->file = create_file(class->relative_filename);
+
+    // DEBUG //
+
+    printf(
+        "package: %s, is final: %d, name: %s, class vis: %s, filename: %s, relative filename: %s\nimport count: %d\n",
+        class->class_package, class->is_final, class->class_name_upper, class->class_vis, class->filename,
+        class->relative_filename, class->n_import);
+    for (int i = 0; i < class->n_import; i++) {
+        printf("import %d: %s\n", i, class->class_import_arr[i]);
+    }
+    printf("attribute count: %d\n", class->n_attribute);
+    for (int i = 0; i < class->n_attribute; i++) {
+        printf("attribute %d: %s %s %s\n", i+1, class->class_attribute_arr[i]->att_vis,
+               class->class_attribute_arr[i]->att_type, class->class_attribute_arr[i]->att_name);
+    }
+    printf("parent class count: %d\n", class->n_parent_class);
+    for (int i = 0; i < class->n_parent_class; i++) {
+        printf("parent class %d: %s\n", i+1, class->parent_class_arr[i]->filename);
+    }
+
+    ///////////
+
+    write_to_class_file(class);
 }
