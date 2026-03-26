@@ -1,6 +1,8 @@
 #ifndef JAVA_STR_H
 #define JAVA_STR_H
 
+#include "structs.h"
+
 char *name_to_filename(char *name);
 
 char *get_cwd_src(void);

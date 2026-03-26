@@ -2,10 +2,13 @@
 #include "mem_check.h"
 #include "string_util.h"
 #include "structs.h"
-#include <string.h>
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <ctype.h>
+#include <string.h>
+#include <unistd.h>
+
+static const int MAX_PATH_LENGTH = 512;
 
 /**
  * @brief Create a file with .java extension
@@ -25,7 +28,7 @@ char *name_to_filename(char *name) {
  * @return `char *` - Current working directory from src directory
  */
 char *get_cwd_src(void) {
-    int size = 512;
+    int size = MAX_PATH_LENGTH;
     char *full_cwd = stralloc(size);
     malloc_check(full_cwd, "creating full cwd");
 
@@ -37,7 +40,7 @@ char *get_cwd_src(void) {
     char *src_path = strstr(full_cwd, "/src");
     char *cwd = stralloc(size);
     malloc_check(cwd, "creating cwd from src");
-    
+
     if (src_path) {
         strcpy(cwd, src_path);
     } else {
@@ -55,7 +58,7 @@ char *get_cwd_src(void) {
  * @return `char *` - Java package name
  */
 char *get_package_name(char *path_from_src) {
-    if (!path_from_src) {
+    if (!path_from_src || strcmp(path_from_src, "./") == 0) {
         return NULL;
     }
     char *pkg = path_from_src + 4;
@@ -68,7 +71,7 @@ char *get_package_name(char *path_from_src) {
 
     if (result[strlen(result) - 1] == '/') {
         result[strlen(result) - 1] = '\0';
-    } 
+    }
 
     for (int i = 0; i < strlen(result); i++) {
         if (result[i] == '/')
@@ -79,12 +82,15 @@ char *get_package_name(char *path_from_src) {
 
 int is_deep_array(class_attribute_t *attribute) {
     char *type = attribute->att_type;
-    return ( (!strstr(type, ">") && strstr(type, "[][]"))) || (strstr(type, "<") && strstr(type, ">") && strstr(strstr(type, ">"), "[][]"));
+    return ((!strstr(type, ">") && strstr(type, "[][]"))) ||
+           (strstr(type, "<") && strstr(type, ">") && strstr(strstr(type, ">"), "[][]"));
 }
 
 int is_simple_array(class_attribute_t *attribute) {
     char *type = attribute->att_type;
-    return ((!strstr(type, ">") && strstr(type, "[][]")) || (strstr(type, "<") && strstr(type, ">") && strstr(strstr(type, ">"), "[]") && !strstr(strstr(type, ">"), "[][]")));
+    return ((!strstr(type, ">") && strstr(type, "[][]")) ||
+            (strstr(type, "<") && strstr(type, ">") && strstr(strstr(type, ">"), "[]") &&
+             !strstr(strstr(type, ">"), "[][]")));
 }
 
 int is_primitive(class_attribute_t *attribute) {
