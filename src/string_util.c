@@ -40,11 +40,30 @@ char *create_str_formated_str(char *format, char *string) {
     return full_string;
 }
 
-// Converts first character to uppercase (camelCase to PascalCase)
+// Converts first character to uppercase
 void first_letter_to_upper(char *string) {
     if (string) {
         string[0] = toupper(string[0]);
     }
+}
+
+char *first_letter_to_upper_dup(char *string) {
+    char *new_string = str_dup(string);
+    first_letter_to_upper(new_string);
+    return new_string;
+}
+
+// Converts first character to lowercase
+void first_letter_to_lower(char *string) {
+    if (string) {
+        string[0] = tolower(string[0]);
+    }
+}
+
+char *first_letter_to_lower_dup(char *string) {
+    char *new_string = str_dup(string);
+    first_letter_to_lower(new_string);
+    return new_string;
 }
 
 // Concatenates two strings and returns new allocated string

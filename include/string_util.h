@@ -13,6 +13,12 @@ char *create_str_formated_str(char *format, char *string);
 
 void first_letter_to_upper(char *string);
 
+char *first_letter_to_upper_dup(char *string);
+
+void first_letter_to_lower(char *string);
+
+char *first_letter_to_lower_dup(char *string);
+
 char *concat_str(char *dest, char *src);
 
 char *strstrdup(char *haystack, char *needle);
