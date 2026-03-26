@@ -9,11 +9,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define LINE_LENGTH 512
+static const LINE_LENGTH = 512;
 
 /**
  * @brief Advances by n lines in given file
- * @note The next fgets() call will return line n+1
+ * @note The next fgets(void) call will return line n+1
  * @param file `FILE` File to read from
  * @param n `int` Number of line to advance
  * @retval `0` - Failed
@@ -66,14 +66,14 @@ int get_class_line(FILE *file) {
 char *extract_nth_line(FILE *file, int n) {
     rewind(file);
 
-    char *line = stralloc(512);
+    char *line = stralloc(LINE_LENGTH);
     malloc_check(line, "creating file line");
 
     if (!advance_n_lines(file, n)) {
         free(line);
         return NULL;
     }
-    if (!fgets(line, 512, file)) {
+    if (!fgets(line, LINE_LENGTH, file)) {
         free(line);
         return NULL;
     }
@@ -227,72 +227,4 @@ int get_n_attribute(FILE *file, int class_line) {
         }
     }
     return counter;
-}
-
-/**
- * @brief Get array containing the class attribute pointers
- * @param file `FILE` File to read from
- * @param class_line `int` Line number of the class definition
- * @param n_att `int` Count of attributes
- * @return `class_attribute_t **` - Class attribute pointer array, NULL if failed
- */
-class_attribute_t **get_class_attributes(FILE *file, int class_line, int n_att) {
-    // TODO: refactor this function -> should be in class_creator instead
-
-    rewind(file);
-    
-    char line[LINE_LENGTH];
-    if (!advance_n_lines(file, class_line)) {
-        return NULL;
-    }
-
-    class_attribute_t **attribute_arr = calloc(n_att, sizeof(class_attribute_t *));
-    malloc_check(attribute_arr, "creating class attribute array");
-
-    int i = 0;
-    while (fgets(line, sizeof(line), file) && !strstr(line, "{")) {
-        strip_comment(line);
-        if (isendline(line[0]) || strstr(line, "static")) {
-            continue;
-        }
-        if (strstr(line, ";") && word_count(line) >= 2) {
-            class_attribute_t *attribute = calloc(1, sizeof(class_attribute_t));
-            malloc_check(attribute, "creating class attribute");
-
-            attribute_arr[i] = attribute;
-
-            if (strstr(line, "final")) {
-                attribute->is_final = 1;
-            } else {
-                attribute->is_final = 0;
-            }
-            if (strstr(line, "public")) {
-                attribute->att_vis = str_dup("public");
-            } else if (strstr(line, "private")) {
-                attribute->att_vis = str_dup("private");
-            } else if (strstr(line, "protected")) {
-                attribute->att_vis = str_dup("protected");
-            } else {
-                attribute->att_vis = str_dup("");
-            }
-
-            attribute->att_name = get_last_word(line);
-            attribute->att_type = get_nth_last_word(line, 2);
-            attribute->is_deep_array = 0;
-            attribute->is_simple_array = 0;
-            attribute->is_primitive = 0;
-
-            if (strstr(attribute->att_type, "[][]") &&
-                !(strstr(attribute->att_type, "<") || strstr(attribute->att_type, ">"))) {
-                attribute->is_deep_array = 1;
-            } else if (strstr(attribute->att_type, "[]") &&
-                       !(strstr(attribute->att_type, "<") || strstr(attribute->att_type, ">"))) {
-                attribute->is_simple_array = 1;
-            } else if (islower(attribute->att_type[0])) {
-                attribute->is_primitive = 1;
-            }
-            i++;
-        }
-    }
-    return attribute_arr;
 }

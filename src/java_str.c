@@ -1,9 +1,11 @@
 #include "java_str.h"
 #include "mem_check.h"
 #include "string_util.h"
+#include "structs.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <ctype.h>
 
 /**
  * @brief Create a file with .java extension
@@ -22,7 +24,7 @@ char *name_to_filename(char *name) {
  * @note Return "./" if couln't find src directory
  * @return `char *` - Current working directory from src directory
  */
-char *get_cwd_src() {
+char *get_cwd_src(void) {
     int size = 512;
     char *full_cwd = stralloc(size);
     malloc_check(full_cwd, "creating full cwd");
@@ -41,6 +43,7 @@ char *get_cwd_src() {
     } else {
         strcpy(cwd, "./");
     }
+    mem_check(cwd, "error: copying cwd from src to new buffer failed");
 
     free(full_cwd);
     return cwd;
@@ -61,6 +64,7 @@ char *get_package_name(char *path_from_src) {
     malloc_check(result, "creating package name");
 
     strcpy(result, pkg);
+    mem_check(result, "error: copying pkg to result failed");
 
     if (result[strlen(result) - 1] == '/') {
         result[strlen(result) - 1] = '\0';
@@ -71,4 +75,18 @@ char *get_package_name(char *path_from_src) {
             result[i] = '.';
     }
     return result;
+}
+
+int is_deep_array(class_attribute_t *attribute) {
+    char *type = attribute->att_type;
+    return ( (!strstr(type, ">") && strstr(type, "[][]"))) || (strstr(type, "<") && strstr(type, ">") && strstr(strstr(type, ">"), "[][]"));
+}
+
+int is_simple_array(class_attribute_t *attribute) {
+    char *type = attribute->att_type;
+    return ((!strstr(type, ">") && strstr(type, "[][]")) || (strstr(type, "<") && strstr(type, ">") && strstr(strstr(type, ">"), "[]") && !strstr(strstr(type, ">"), "[][]")));
+}
+
+int is_primitive(class_attribute_t *attribute) {
+    return islower(attribute->att_name[0]);
 }

@@ -19,6 +19,4 @@ char *get_parent_class_name(FILE *file, int class_line);
 
 int get_n_attribute(FILE *file, int class_line);
 
-class_attribute_t **get_class_attributes(FILE *file, int class_line, int n_att);
-
 #endif
