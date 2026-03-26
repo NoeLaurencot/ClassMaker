@@ -15,15 +15,18 @@ typedef struct class_attribute_t {
 } class_attribute_t;
 
 typedef struct class_t {
-    java_type_t java_type; //
+    java_type_t java_type;
     int is_final;
-    char *class_name; //
+    char *class_name_upper;
+    char *class_name_lower;
     char *class_vis;
-    char *relative_filepath;
+    char *filename;
+    char *relative_filename;
     char **class_import_arr;
+    int n_import;
     char *class_package;
     class_attribute_t **class_attribute_arr;
-    int n_attributes;
+    int n_attribute;
     struct class_t **parent_class_arr;
     int n_parent_class;
     FILE *file;
