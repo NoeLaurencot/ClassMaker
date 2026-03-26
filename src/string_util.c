@@ -23,6 +23,7 @@ char *str_dup(const char *string) {
     char *cpy = stralloc(strlen(string));
     malloc_check(cpy, "creating string duplicate");
     strcpy(cpy, string);
+    mem_check(cpy, "error: string copying for str_dup failed");
     return cpy;
 }
 
@@ -40,7 +41,7 @@ char *create_str_formated_str(char *format, char *string) {
 }
 
 // Converts first character to uppercase (camelCase to PascalCase)
-void camel_to_pascal(char *string) {
+void first_letter_to_upper(char *string) {
     if (string) {
         string[0] = toupper(string[0]);
     }
@@ -106,7 +107,7 @@ static int get_word_i(char *string) {
 }
 
 // Finds the closing bracket/angle position
-static int search_closing_i(char *string, char start) {
+int search_closing_i(char *string, char start) {
     if (start != '[' && start != '<') {
         return -1;
     }
@@ -246,7 +247,7 @@ static int get_next_word_end_i(char *string) {
 }
 
 // Gets the ending index of the nth word
-static int get_nth_word_end_i(char *string, int n_word) {
+int get_nth_word_end_i(char *string, int n_word) {
     int i = 0;
 
     int res = get_nth_word_i(string, n_word);
