@@ -8,10 +8,10 @@
 "import %s;\n"
 
 #define CLASS \
-"public class %s {\n"
+"class %s {\n"
 
 #define CLASS_WI \
-"public class %s extends %s {\n"
+"class %s extends %s {\n"
 
 #define ATTRIBUTE_WVIS \
 "\t%s %s %s;\n"
