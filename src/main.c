@@ -95,7 +95,7 @@ int main(int argc, char *argv[]) {
     }
     switch (java_type) {
     case JAVA_TYPE_CLASS:
-        create_class();
+        init_class();
         break;
     case JAVA_TYPE_INTERFACE:
         break;
