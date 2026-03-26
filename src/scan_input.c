@@ -6,6 +6,7 @@
 #include <string.h>
 #include <stdlib.h>
 
+// TODO: change the scanf to fgets to register empty input
 // Scans and returns a non-negative integer from input
 int scan_unsigned_int() {
     int result;
@@ -24,6 +25,7 @@ int scan_unsigned_int() {
     return n;
 }
 
+// TODO: change the scanf to fgets to register empty input
 // Scans an integer within min and max range
 int scan_min_max_int(int n_min, int n_max) {
     int result;
@@ -42,11 +44,13 @@ int scan_min_max_int(int n_min, int n_max) {
     return n;
 }
 
+// TODO: change the scanf to fgets to register empty input
 // Scans an unsigned integer within maximum range
 int scan_n_unsigned_int(int n_max) {
     return scan_min_max_int(0, n_max);
 }
 
+// TODO: change the scanf to fgets to register empty input
 // Scans and returns any integer from input
 int scan_int() {
     int result;
