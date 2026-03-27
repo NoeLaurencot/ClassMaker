@@ -41,6 +41,16 @@ int get_n_dir_to_check(char *path) {
     return counter;
 }
 
+int get_total_parent_att(class_t *class) {
+    int total_parent_att = 0;
+    for (int i = 0; i < class->n_parent_class; i++) {
+        for (int j = 0; j < class->parent_class_arr[i]->n_attribute; j++) {
+            total_parent_att++;
+        }
+    }
+    return total_parent_att;
+}
+
 /**
  * @brief Checks if a file exists in a given directory
  * @param filename `char *` Name of the file to search
@@ -109,7 +119,7 @@ void init_class(void) {
     create_class(class_arr, 0);
 }
 
-char *ask_class_name_upper(class_t **class_arr, int n_class) {
+char *ask_class_name(class_t **class_arr, int n_class) {
 
     if (n_class == 1)
         printf("What is the class name?\n");
@@ -219,13 +229,12 @@ void ask_create_parent_class(class_t **class_arr, int n_class) {
 }
 
 void set_class_vis(class_t *class) {
-    char *vis_lookup_arr[] = {"public", "private", "protected"};
+    char *vis_lookup_arr[] = {"public", "protected"};
 
-    printf("Visibility of \"%s\"\n"
-        "1. Public\n"
-        "2. Private\n"
-        "3. Protected\n",
-        class->class_name_upper);
+    printf("Visibility of %s\n"
+           "1. Public\n"
+           "2. Protected\n",
+           class->class_name_upper);
     class->class_vis = str_dup(vis_lookup_arr[scan_min_max_int(1, 3) - 1]);
 }
 
@@ -252,7 +261,9 @@ void create_attribute(class_t *class, int i, int vis_pref) {
     malloc_check(att, "creating class attribute");
 
     printf("Name of attribute n°%d of %s\n", i + 1, class->class_name_upper);
-    att->att_name = scan_string(MAX_ATT_NAME_LENGTH);
+    att->att_name_lower = scan_string(MAX_ATT_NAME_LENGTH);
+    first_letter_to_lower(att->att_name_lower);
+    att->att_name_upper = first_letter_to_upper_dup(att->att_name_lower);
 
     printf("Type of attribute \"%s\"\n"
            "1. int\n"
@@ -260,7 +271,7 @@ void create_attribute(class_t *class, int i, int vis_pref) {
            "3. String\n"
            "4. boolean\n"
            "5. Custom\n",
-           att->att_name);
+           att->att_name_lower);
     int att_type_answer = scan_min_max_int(1, TYPE_COUNT) - 1;
     if (att_type_answer <= TYPE_BOOLEAN) { // option 1 -> 4
         att->att_type = str_dup(type_lookup_arr[att_type_answer]);
@@ -281,7 +292,7 @@ void create_attribute(class_t *class, int i, int vis_pref) {
                "1. Public\n"
                "2. Private\n"
                "3. Protected\n",
-               att->att_name);
+               att->att_name_lower);
         att->att_vis = str_dup(vis_lookup_arr[scan_min_max_int(1, 3) - 1]);
     } else {
         att->att_vis = NULL;
@@ -305,8 +316,8 @@ void create_class_attributes(class_t *class) {
 
     // set global visibility
     printf("Attributes visibility of %s\n"
-           "1. Private\n"
-           "2. Public\n"
+           "1. Public\n"
+           "2. Private\n"
            "3. Protected\n"
            "4. Decide for each attribute\n",
            class->class_name_upper);
@@ -318,16 +329,18 @@ void create_class_attributes(class_t *class) {
     }
 }
 
+// fills class struct from user input
 void set_class_from_user(class_t **class_arr, int n_class) {
-    class_t **parent_class_arr;
 
     class_t *class = class_arr[n_class - 1];
 
     ask_create_parent_class(class_arr, n_class);
 
-    printf("Is %s class final? (y/n)\n", class->class_name_upper);
-    if (scan_boolean()) {
-        class->is_final = 1;
+    if (n_class == 1) {
+        printf("Is %s class final? (y/n)\n", class->class_name_upper);
+        if (scan_boolean()) {
+            class->is_final = 1;
+        }
     } else {
         class->is_final = 0;
     }
@@ -339,16 +352,22 @@ void set_class_from_user(class_t **class_arr, int n_class) {
     set_import_arr(class);
 }
 
+char *create_defaut_filename(char *filename) {
+    return concat_str("./", filename);
+}
+
 void create_class(class_t **class_arr, int n_class) {
     class_t *class = calloc(1, sizeof(class_t));
     malloc_check(class, "creating class");
 
+    printf("%p\n", class_arr[n_class]);
     class_arr[n_class] = class;
+    printf("%p\n", class_arr[n_class]);
     n_class++;
 
     class->java_type = JAVA_TYPE_CLASS;
 
-    class->class_name_lower = ask_class_name_upper(class_arr, n_class);
+    class->class_name_lower = ask_class_name(class_arr, n_class);
     class->class_name_upper = first_letter_to_upper_dup(class->class_name_lower);
 
     class->filename = name_to_filename(class->class_name_upper);
@@ -357,7 +376,7 @@ void create_class(class_t **class_arr, int n_class) {
     if (n_class == 1) {
         class->class_package = get_package_name(cwd_src);
 
-        class->relative_filename = concat_str("./", class->filename);
+        class->relative_filename = create_defaut_filename(class->filename);
         if (is_file_in_dir(class->filename, "./")) {
             fprintf(stderr, "error: file already exists\n");
             // TODO: free everything before exiting for cleaner exit
@@ -367,13 +386,12 @@ void create_class(class_t **class_arr, int n_class) {
         class->relative_filename = search_filepath_in_dirs(class->filename, get_n_dir_to_check(cwd_src));
     }
 
-    free(cwd_src);
-
-    if (n_class > 1) {
+    if (n_class > 1) { // THEN PARENT CLASS
         if (class->relative_filename) { // file found
             // TODO: read class
         } else { // file not found
-            printf("%s doesn't exist or wasn't found, do you want to create it? (y/n)", class->class_name_upper);
+            class->relative_filename = create_defaut_filename(class->filename);
+            printf("%s doesn't exist or wasn't found, do you want to create it? (y/n)\n", class->class_name_upper);
             if (!scan_boolean()) { // parent class not created so undo class structure
                 if (class->class_package)
                     free(class->class_package);
@@ -383,6 +401,7 @@ void create_class(class_t **class_arr, int n_class) {
                 n_class--;
                 return;
             }
+            class->class_package = get_package_name(cwd_src);
 
             set_class_from_user(class_arr, n_class);
         }
@@ -390,28 +409,11 @@ void create_class(class_t **class_arr, int n_class) {
         set_class_from_user(class_arr, n_class);
     }
 
+    free(cwd_src);
+
+    class->total_parent_att = get_total_parent_att(class); // CRASHES HERE
+
     class->file = create_file(class->relative_filename);
-
-    // DEBUG //
-
-    printf(
-        "package: %s, is final: %d, name: %s, class vis: %s, filename: %s, relative filename: %s\nimport count: %d\n",
-        class->class_package, class->is_final, class->class_name_upper, class->class_vis, class->filename,
-        class->relative_filename, class->n_import);
-    for (int i = 0; i < class->n_import; i++) {
-        printf("import %d: %s\n", i, class->class_import_arr[i]);
-    }
-    printf("attribute count: %d\n", class->n_attribute);
-    for (int i = 0; i < class->n_attribute; i++) {
-        printf("attribute %d: %s %s %s\n", i+1, class->class_attribute_arr[i]->att_vis,
-               class->class_attribute_arr[i]->att_type, class->class_attribute_arr[i]->att_name);
-    }
-    printf("parent class count: %d\n", class->n_parent_class);
-    for (int i = 0; i < class->n_parent_class; i++) {
-        printf("parent class %d: %s\n", i+1, class->parent_class_arr[i]->filename);
-    }
-
-    ///////////
 
     write_to_class_file(class);
 }

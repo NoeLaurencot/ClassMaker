@@ -13,7 +13,7 @@ FILE *create_file(char* filename);
 
 void init_class(void);
 
-char *ask_class_name_upper(class_t **class_arr, int n_class);
+char *ask_class_name(class_t **class_arr, int n_class);
 
 void set_import_arr(class_t *class);
 

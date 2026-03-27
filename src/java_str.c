@@ -94,5 +94,7 @@ int is_simple_array(class_attribute_t *attribute) {
 }
 
 int is_primitive(class_attribute_t *attribute) {
-    return islower(attribute->att_name[0]);
+    if (islower(attribute->att_type[0]))
+        return 1;
+    return 0;
 }
