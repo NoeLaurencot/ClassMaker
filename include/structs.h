@@ -5,7 +5,8 @@
 #include "enums.h"
 
 typedef struct class_attribute_t {
-    char *att_name;
+    char *att_name_upper;
+    char *att_name_lower;
     char *att_type;
     char *att_vis;
     int is_final;
@@ -29,6 +30,7 @@ typedef struct class_t {
     int n_attribute;
     struct class_t **parent_class_arr;
     int n_parent_class;
+    int total_parent_att;
     FILE *file;
 } class_t;
 
