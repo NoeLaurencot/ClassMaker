@@ -94,7 +94,11 @@ int is_simple_array(class_attribute_t *attribute) {
 }
 
 int is_primitive(class_attribute_t *attribute) {
-    if (islower(attribute->att_type[0]))
-        return 1;
-    return 0;
+    char *type = attribute->att_type;
+    return (islower(type[0]) && !(strstr(type, "<") && strstr(type, ">")) || !(strstr(type, "[") && strstr(type, "]")));
+}
+
+int is_simple_object(class_attribute_t *attribute) {
+    char *type = attribute->att_type;
+    return (isupper(type[0]) && !is_deep_array(attribute) && !is_simple_array(attribute));
 }
