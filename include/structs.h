@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include "enums.h"
 
+// TODO: add att_type strcut for better hashCode handling
+
 typedef struct class_attribute_t {
     char *att_name_upper;
     char *att_name_lower;
@@ -11,6 +13,7 @@ typedef struct class_attribute_t {
     char *att_vis;
     int is_final;
     int is_primitive;
+    int is_simple_object;
     int is_simple_array;
     int is_deep_array;
 } class_attribute_t;

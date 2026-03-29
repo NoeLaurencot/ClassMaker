@@ -15,4 +15,6 @@ int is_simple_array(class_attribute_t *attribute);
 
 int is_primitive(class_attribute_t *attribute);
 
+int is_simple_object(class_attribute_t *attribute);
+
 #endif
