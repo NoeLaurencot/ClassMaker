@@ -215,12 +215,12 @@ void ask_create_parent_class(class_t **class_arr, int n_class) {
 
         create_class(class_arr, n_class);
 
-        printf("%s done, going back to %s\n", class->parent_class_arr[1]->class_name_upper, class->class_name_upper);
+        printf("%s done, going back to %s\n", class->parent_class_arr[0]->class_name_upper, class->class_name_upper);
     } else { // stop recursion, fill each children parent class array with every parent class
         // each children class
         for (int i = 0; i < n_class - 1; i++) {
-            // fill child parent class array
-            for (int j = 1; j < n_class; j++) {
+            // fill each child parent class array
+            for (int j = 0; j < n_class - 1; j++) {
                 class_arr[i]->parent_class_arr[j] = class;
                 class_arr[i]->n_parent_class++;
             }
@@ -360,9 +360,7 @@ void create_class(class_t **class_arr, int n_class) {
     class_t *class = calloc(1, sizeof(class_t));
     malloc_check(class, "creating class");
 
-    printf("%p\n", class_arr[n_class]);
     class_arr[n_class] = class;
-    printf("%p\n", class_arr[n_class]);
     n_class++;
 
     class->java_type = JAVA_TYPE_CLASS;
@@ -416,4 +414,6 @@ void create_class(class_t **class_arr, int n_class) {
     class->file = create_file(class->relative_filename);
 
     write_to_class_file(class);
+    
+    fclose(class->file);
 }
