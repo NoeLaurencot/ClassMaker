@@ -26,6 +26,8 @@ void write_to_class_file(class_t *class) {
     // imports
     for (int i = 0; i < class->n_import; i++)
         fprintf(file, IMPORT, class->class_import_arr[i]);
+    if (class->n_import > 0)
+        fprintf(file, "\n");
 
     // class
     if (class->is_final != 0)
@@ -33,7 +35,7 @@ void write_to_class_file(class_t *class) {
     if (class->class_vis)
         fprintf(file, "%s ", class->class_vis);
     if (class->parent_class_arr)
-        fprintf(file, CLASS_WI, class->class_name_upper, class->parent_class_arr[1]->class_name_upper);
+        fprintf(file, CLASS_WI, class->class_name_upper, class->parent_class_arr[0]->class_name_upper);
     else
         fprintf(file, CLASS, class->class_name_upper);
 
@@ -56,12 +58,12 @@ void write_to_class_file(class_t *class) {
         fprintf(file, CONSTR_OPEN, class->class_name_upper);
 
         if (class->n_parent_class > 0) {
-            for (int i = class->n_parent_class; i > 0; i--) {
+            for (int i = class->n_parent_class - 1; i >= 0; i--) {
                 class_t *parent_class = class->parent_class_arr[i];
                 for (int j = 0; j < parent_class->n_attribute; j++) {
-                    class_attribute_t *att = parent_class->class_attribute_arr[i];
+                    class_attribute_t *att = parent_class->class_attribute_arr[j];
                     fprintf(file, CONSTR_PARAMETER, att->att_type, att->att_name_lower);
-                    if (i != class->total_parent_att - 1 || class->n_attribute > 0) {
+                    if (j != parent_class->n_attribute - 1 || class->n_attribute > 0) {
                         fprintf(file, ", ");
                     }
                 }
@@ -82,8 +84,8 @@ void write_to_class_file(class_t *class) {
             for (int i = class->n_parent_class - 1; i >= 0; i--) {
                 class_t *parent_class = class->parent_class_arr[i];
                 for (int j = 0; j < parent_class->n_attribute; j++) {
-                    class_attribute_t *att = parent_class->class_attribute_arr[i];
-                    fprintf(file, CONSTR_SUPER_PARAMETER, parent_class->class_attribute_arr[i]->att_name_lower);
+                    class_attribute_t *att = parent_class->class_attribute_arr[j];
+                    fprintf(file, CONSTR_SUPER_PARAMETER, att->att_name_lower);
                     if (i != class->total_parent_att - 1) {
                         fprintf(file, ", ");
                     }
@@ -130,119 +132,62 @@ void write_to_class_file(class_t *class) {
         }
     }
 
-    // // toString
-    // fprintf(file,"\n\t@Override\n");
-    // fprintf(file, TO_STRING_OPEN);
-    // if (isInherited == 0) {
-    //     fprintf(file, TO_STRING);
-    // } else {
-    //     fprintf(file, TO_STRING_WI);
-    // }
-    // if (attNumber > 0) {
-    //     fprintf(file, " + ");
-    //     for (unsigned int i = 0; i < attNumber; i++) {
-    //         if (is2DArray(classAttList[i].attType) == 1) {
-    //             fprintf(file, TO_STRING_CONTENT_DEEP_ARR, classAttList[i].attName, classAttList[i].attName);
-    //         } else if (isArray(classAttList[i].attType) == 1) {
-    //             fprintf(file, TO_STRING_CONTENT_ARR, classAttList[i].attName, classAttList[i].attName);
-    //         } else {
-    //             fprintf(file, TO_STRING_CONTENT, classAttList[i].attName, classAttList[i].attName);
-    //         }
-    //         if (i != attNumber - 1) {
-    //             fprintf(file, " + ");
-    //         }
-    //     }
-    // }
-    // fprintf(file, ";\n\t}\n");
+    // toString
+    fprintf(file,"\n\t@Override\n");
+    fprintf(file, TO_STRING_OPEN);
+    if (class->n_parent_class == 0) {
+        fprintf(file, TO_STRING);
+    } else {
+        fprintf(file, TO_STRING_WI);
+    }
+    if (class->n_attribute > 0) {
+        fprintf(file, " + ");
+        for (int i = 0; i < class->n_attribute; i++) {
+            class_attribute_t *att = class->class_attribute_arr[i];
+            if (att->is_deep_array) {
+                fprintf(file, TO_STRING_CONTENT_DEEP_ARR, att->att_name_lower, att->att_name_lower);
+            } else if (att->is_simple_array) {
+                fprintf(file, TO_STRING_CONTENT_ARR, att->att_name_lower, att->att_name_lower);
+            } else {
+                fprintf(file, TO_STRING_CONTENT, att->att_name_lower, att->att_name_lower);
+            }
+            if (i != class->n_attribute - 1) {
+                fprintf(file, " + ");
+            }
+        }
+    }
+    fprintf(file, ";\n\t}\n");
 
     // // equals
-    // if (attNumber > 0 || isInherited == 1) {
-    //     fprintf(file,"\n\t@Override\n");
-    //     fprintf(file, EQUALS, className, firstLetterLower);
-    //     if (isInherited == 1) {
-    //         fprintf(file, EQUALS_SUPER, firstLetterLower);
-    //         if (attNumber > 0) {
-    //             fprintf(file, " && ");
-    //         }
-    //     }
-    //     for (unsigned int i = 0; i < attNumber; i++) {
-    //         char *attNameUp = strdup(classAttList[i].attName);
-    //         attNameUp[0] = toupper((unsigned char)attNameUp[0]);
-    //         int isFirstLetterLower = islower((unsigned char)classAttList[i].attType[0]) != 0;
-    //         if (is2DArray(classAttList[i].attType) == 1) {
-    //             fprintf(file, EQUALS_CONTENT_DEEP_ARR, classAttList[i].attName, firstLetterLower, attNameUp);
-    //         } else if (isArray(classAttList[i].attType) == 1) {
-    //             fprintf(file, EQUALS_CONTENT_ARR, classAttList[i].attName, firstLetterLower, attNameUp);
-    //         } else if (isFirstLetterLower == 1) {
-    //             fprintf(file, EQUALS_CONTENT, classAttList[i].attName, firstLetterLower, attNameUp);
-    //         } else {
-    //             fprintf(file, EQUALS_CONTENT_OBJ, classAttList[i].attName, firstLetterLower, attNameUp);
-    //         }
-    //         if (i != attNumber - 1) {
-    //             fprintf(file," && ");
-    //         }
-    //     }
-    //     fprintf(file,";\n\t}\n");
-    // }
+    if (class->n_attribute > 0 || class->n_parent_class > 0) {
+        fprintf(file,"\n\t@Override\n");
+        fprintf(file, EQUALS, class->class_name_upper, class->class_name_lower[0]);
+        if (class->n_parent_class > 0) {
+            fprintf(file, EQUALS_SUPER, class->class_name_lower[0]);
+            if (class->n_attribute > 0) {
+                fprintf(file, " && ");
+            }
+        }
+        for (int i = 0; i < class->n_attribute; i++) {
+            class_attribute_t *att = class->class_attribute_arr[i];
 
-    // // hashCode
-    // if (attNumber > 0 || isInherited == 1) {
-    //     fprintf(file,"\n\t@Override\n");
-    //     fprintf(file,HASH_CODE);
+            if (att->is_deep_array) {
+                fprintf(file, EQUALS_CONTENT_DEEP_ARR, att->att_name_lower, class->class_name_lower[0], att->att_name_upper);
+            } else if (att->is_simple_array) {
+                fprintf(file, EQUALS_CONTENT_ARR, att->att_name_lower, class->class_name_lower[0], att->att_name_upper);
+            } else if (att->is_primitive) {
+                fprintf(file, EQUALS_CONTENT, att->att_name_lower, class->class_name_lower[0], att->att_name_upper);
+            } else {
+                fprintf(file, EQUALS_CONTENT_OBJ, att->att_name_lower, class->class_name_lower[0], att->att_name_upper);
+            }
+            if (i != class->n_attribute - 1) {
+                fprintf(file," && ");
+            }
+        }
+        fprintf(file,";\n\t}\n");
+    }
 
-    //     if (hasNonPrim == 1) {
-    //         fprintf(file, HASH_CODE_CONTENT_NONPRIM);
-    //     } else {
-    //         fprintf(file, HASH_CODE_CONTENT);
-    //     }
-    //     if (isInherited == 1) {
-    //         fprintf(file, HASH_CODE_SUPER);
-    //         if (nPrim > 0) {
-    //             fprintf(file, ", ");
-    //         }
-    //     }
+    // TODO: implement the hashCode
 
-    //     int nPrimCounter = 0;
-    //     for (unsigned int i = 0; i < attNumber; i++) {
-    //         if (isArray(classAttList[i].attType) == 0 && is2DArray(classAttList[i].attType) == 0) {
-    //             fprintf(file, HASH_CODE_PARAM, classAttList[i].attName);
-    //             if (++nPrimCounter != nPrim) {
-    //                 fprintf(file, ", ");
-    //             }
-    //         }
-    //     }
-    //     fprintf(file, ");\n");
-    //     if (hasArr) {
-    //         fprintf(file, HASH_CODE_NONPRIM, "hashCode(");
-    //         int arrCounter = 0;
-    //         for (unsigned int i = 0; i < attNumber; i++) {
-    //             if (isArray(classAttList[i].attType) == 1) {
-    //                 fprintf(file, HASH_CODE_PARAM, classAttList[i].attName);
-    //                 if (++arrCounter != nArr) {
-    //                     fprintf(file, ", ");
-    //                 }
-    //             }
-    //         }
-    //         fprintf(file, ");\n");
-    //     }
-    //     if (has2DArr) {
-    //         fprintf(file, HASH_CODE_NONPRIM, "deepHashCode(");
-    //         int arr2DCounter = 0;
-    //         for (unsigned int i = 0; i < attNumber; i++) {
-    //             if (is2DArray(classAttList[i].attType) == 1) {
-    //                 fprintf(file, HASH_CODE_PARAM, classAttList[i].attName);
-    //                 if (++arr2DCounter != nArr) {
-    //                     fprintf(file, ", ");
-    //                 }
-    //             }
-    //         }
-    //         fprintf(file, ");\n");
-    //     }
-    //     if (hasNonPrim == 1) {
-    //         fprintf(file, "\t\treturn hashResult;\n");
-    //     }
-    //     fprintf(file, "\t}\n");
-
-    // }
     fprintf(file, "}");
 }
