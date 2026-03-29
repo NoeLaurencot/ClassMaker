@@ -6,7 +6,6 @@
 #include <string.h>
 #include <stdlib.h>
 
-// TODO: change the scanf to fgets to register empty input
 // Scans and returns a non-negative integer from input
 int scan_unsigned_int() {
     int result;
@@ -44,13 +43,11 @@ int scan_min_max_int(int n_min, int n_max) {
     return n;
 }
 
-// TODO: change the scanf to fgets to register empty input
 // Scans an unsigned integer within maximum range
 int scan_n_unsigned_int(int n_max) {
     return scan_min_max_int(0, n_max);
 }
 
-// TODO: change the scanf to fgets to register empty input
 // Scans and returns any integer from input
 int scan_int() {
     int result;
@@ -68,19 +65,22 @@ int scan_int() {
 
 // Scans and returns a boolean from input (y/n)
 int scan_boolean() {
-    int result;
-    char c;
-    while ((result = scanf(" %c", &c)) != 1 || (c != 'y' && c != 'n')) {
+    while (1) {
+        char c;
+        int next_char;
+        int result = scanf(" %c", &c);
         if (result == EOF) {
             fprintf(stderr, "error: input stream closed\n");
             exit(1);
         }
-        if (result != 1) {
-            while (getchar() != '\n');
+
+        if ((c != 'y' && c != 'n') || getchar() != '\n') {
+            fprintf(stderr, "Invalid input, try again\n");
+            while ((next_char = getchar()) != '\n' && next_char != EOF);
+        } else {
+            return c == 'y';
         }
-        fprintf(stderr, "Invalid input, try again\n");
     }
-    return c == 'y';
 }
 
 // Checks if a string contains at least one letter
